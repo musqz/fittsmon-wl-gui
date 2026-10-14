@@ -1,0 +1,17 @@
+pkgbase = fittsmon-wl-gui
+	pkgdesc = GTK3 GUI to configure fittsmon-wl screen-corner hotspots on Wayland
+	pkgver = 0.1.0
+	pkgrel = 1
+	url = https://github.com/musqz/fittsmon-wl-gui
+	arch = any
+	license = MIT
+	depends = python
+	depends = python-gobject
+	depends = python-cairo
+	depends = gtk3
+	depends = gtk-layer-shell
+	depends = wlr-randr
+	depends = xdg-utils
+	optdepends = fittsmon-wl: the daemon this GUI configures
+
+pkgname = fittsmon-wl-gui
