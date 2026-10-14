@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=fittsmon-wl-gui
+Comment=Configure fittsmon-wl screen corner hotspots (Wayland)
+Exec=fittsmon-wl-gui
+Terminal=false
+Type=Application
+Categories=Utility;
+Icon=fittsmon-wl-gui

@@ -1,0 +1,127 @@
+.TH FITTSMON-WL-GUI 1 "January 2026" "fittsmon-wl-gui 0.1.0" "User Commands"
+.SH NAME
+fittsmon-wl-gui \- Graphical configuration tool for screen corner hotspots.
+
+.SH SYNOPSIS
+.B fittsmon-wl-gui
+
+.SH DESCRIPTION
+.B fittsmon-wl-gui
+is a graphical user interface for configuring screen corner hotspots. It allows users to map mouse events (clicks, wheel scrolling, mouse enter/leave) in screen corners and edges to shell commands.
+
+The GUI automatically detects all connected monitors and provides an intuitive interface for per-monitor, per-zone, and per-event command configuration.
+
+.SH CONFIGURATION
+All configuration is stored in:
+.RS
+.B ~/.config/fittsmon-wl/fittsmon-wlrc
+.RE
+
+Configuration changes are automatically saved when commands are entered or modified.
+
+.SH USAGE
+
+Start the GUI:
+.RS
+.B fittsmon-wl-gui
+.RE
+
+.SS Basic Workflow
+.IP 1. 3
+Select a monitor from the dropdown
+.IP 2. 3
+Click a zone on the visual grid (corners or edges)
+.IP 3. 3
+Select an event type from the dropdown
+.IP 4. 3
+Type a shell command in the text field
+.IP 5. 3
+Click Test to verify the command works
+.IP 6. 3
+Click Restart to activate the configuration
+
+.SH ZONES
+
+Eight zones are available per monitor:
+.RS
+.IP \(bu 2
+TopLeft, TopCenter, TopRight
+.IP \(bu 2
+Left, Right
+.IP \(bu 2
+BottomLeft, BottomCenter, BottomRight
+.RE
+
+.SH EVENTS
+
+Nine event types are supported:
+.RS
+.IP \(bu 2
+WheelUp, WheelDown - continuous wheel scrolling
+.IP \(bu 2
+WheelUpOnce, WheelDownOnce - rate-limited wheel scrolling
+.IP \(bu 2
+LeftButton, RightButton, MiddleButton - mouse button clicks
+.IP \(bu 2
+Enter, Leave - mouse entering or leaving the zone
+.RE
+
+.SH BUTTONS
+
+.TP
+.B Test
+Execute the current command to verify it works.
+
+.TP
+.B Edit File
+Open the configuration file in the default text editor.
+
+.TP
+.B Show Hotspots
+Display configured hotspots as overlay windows on all monitors.
+
+.TP
+.B Save
+Write configuration changes to the config file.
+
+.TP
+.B Restart
+Reload the fittsmon daemon with the current configuration.
+
+.SH CONFLICT RESOLUTION
+
+The GUI prevents invalid configurations:
+.RS
+.IP \(bu 2
+WheelUp and WheelUpOnce are mutually exclusive per zone
+.IP \(bu 2
+WheelDown and WheelDownOnce are mutually exclusive per zone
+.IP \(bu 2
+Button events can coexist with any other event
+.IP \(bu 2
+Enter and Leave events can be used together
+.RE
+
+When a conflict is detected, a warning appears with an option to clear the conflicting setting.
+
+.SH MULTI-MONITOR SUPPORT
+
+The GUI automatically detects and lists all connected monitors. Configuration is saved separately for each monitor. The primary monitor's sections use zone names only (e.g., [TopLeft]), while secondary monitors include the monitor name (e.g., [HDMI-1-TopLeft]).
+
+.SH FILES
+
+.TP
+.B ~/.config/fittsmon-wl/fittsmon-wlrc
+Configuration file containing zone and event command mappings.
+
+.SH SEE ALSO
+.BR fittsmon\-wl (1)
+
+.SH BUGS
+Report bugs to: https://github.com/musqz/fittsmon
+
+.SH AUTHOR
+Created with askcodi account (paid).
+
+.SH LICENSE
+GNU General Public License v2.0 or later
