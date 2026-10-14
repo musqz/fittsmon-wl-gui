@@ -72,3 +72,8 @@ packaging/pkg/
 packaging/*.pkg.tar.zst
 packaging/*.pkg.tar.xz
 packaging/*.tar.gz
+
+# Arch packaging
+src/
+pkg/
+*.pkg.tar.zst
