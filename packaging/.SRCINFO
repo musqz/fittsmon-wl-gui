@@ -5,10 +5,13 @@ pkgbase = fittsmon-wl-gui
 	url = https://github.com/musqz/fittsmon-wl-gui
 	arch = any
 	license = MIT
-	depends = wlr-randr
+	depends = python
 	depends = python-gobject
+	depends = python-cairo
 	depends = gtk3
 	depends = gtk-layer-shell
-	optdepends = fittsmon-wl: the daemon this GUI configures (not packaged)
+	depends = wlr-randr
+	depends = xdg-utils
+	optdepends = fittsmon-wl: the daemon this GUI configures
 
 pkgname = fittsmon-wl-gui
