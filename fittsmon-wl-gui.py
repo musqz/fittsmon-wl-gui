@@ -27,8 +27,8 @@ if _VERSION.startswith("__"):
 TRANSLATIONS = {
     'en': {
         # Window
-        'window_title': 'fittsmon',
-        'app_title': 'fittsmon action manager',
+        'window_title': 'fittsmon-wl',
+        'app_title': 'fittsmon-wl action manager',
         'app_subtitle': 'Screen Corner Hotspots',
         
         # Labels
@@ -111,8 +111,8 @@ TRANSLATIONS = {
     
     'es': {
         # Window
-        'window_title': 'fittsmon',
-        'app_title': 'gestor de acciones fittsmon',
+        'window_title': 'fittsmon-wl',
+        'app_title': 'gestor de acciones fittsmon-wl',
         'app_subtitle': 'Esquinas Activas de Pantalla',
         
         # Labels
@@ -195,8 +195,8 @@ TRANSLATIONS = {
     
     'pl': {
         # Window
-        'window_title': 'fittsmon',
-        'app_title': 'menedżer akcji fittsmon',
+        'window_title': 'fittsmon-wl',
+        'app_title': 'menedżer akcji fittsmon-wl',
         'app_subtitle': 'Aktywne Rogi Ekranu',
         
         # Labels
@@ -334,12 +334,14 @@ class ConfigParser:
                     key, value = line.split('=', 1)
                     key = key.strip()
                     value = value.strip()
-                    self.data[current_section][key] = value
+                    # empty == unset, so [Zone] defaults are inherited
+                    if value:
+                        self.data[current_section][key] = value
     
     def write(self, filepath, zones, events, monitors):
         """
         Write config file preserving case
-        Writes ALL sections for ALL zones with ALL events (even if empty)
+        Writes a section for every zone of every monitor, non-empty events only
         Order: Primary first, then each secondary monitor
         """
         with open(filepath, 'w') as f:
@@ -361,6 +363,15 @@ class ConfigParser:
                 sorted_monitors.append(primary_mon)
             sorted_monitors.extend(secondary_mons)
             
+            # Unprefixed sections apply to every monitor; keep them
+            for zone in zones:
+                if zone in self.data and not primary_mon:
+                    f.write(f"[{zone}]\n")
+                    for event in events:
+                        if self.data[zone].get(event):
+                            f.write(f"{event}={self.data[zone][event]}\n")
+                    f.write("\n")
+
             # Write all monitors in order
             for mon in sorted_monitors:
                 mon_name = mon['name']
@@ -375,10 +386,11 @@ class ConfigParser:
                     
                     f.write(f"[{section_name}]\n")
                     
-                    # Write ALL events (even if empty)
+                    # Empty keys are omitted: they would override [Zone] defaults
                     for event in events:
                         value = self.data.get(section_name, {}).get(event, "")
-                        f.write(f"{event}={value}\n")
+                        if value:
+                            f.write(f"{event}={value}\n")
                     
                     f.write("\n")
     
@@ -779,7 +791,8 @@ class FittsmonGUI:
     
     def get_command(self, monitor, zone, event):
         section = self.get_section_name(monitor, zone)
-        return self.config.get(section, event, fallback="")
+        # display only: [Zone] defaults apply to every monitor
+        return self.config.get(section, event) or self.config.get(zone, event)
     
     def set_command(self, monitor, zone, event, command):
         section = self.get_section_name(monitor, zone)
@@ -802,8 +815,9 @@ class FittsmonGUI:
             return None
         
         conflict_event = self.WHEEL_CONFLICT_PAIRS[event]
-        current_cmd = self.get_command(self.current_monitor, self.current_zone, event)
-        conflict_cmd = self.get_command(self.current_monitor, self.current_zone, conflict_event)
+        section = self.get_section_name(self.current_monitor, self.current_zone)
+        current_cmd = self.config.get(section, event, fallback="")
+        conflict_cmd = self.config.get(section, conflict_event, fallback="")
         
         if current_cmd == "" and conflict_cmd:
             return {
