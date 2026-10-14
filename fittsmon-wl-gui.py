@@ -7,6 +7,12 @@ import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
+try:
+    gi.require_version('GtkLayerShell', '0.1')
+    from gi.repository import GtkLayerShell
+except (ValueError, ImportError):
+    GtkLayerShell = None
+import cairo
 import subprocess
 import os
 import time
@@ -432,7 +438,7 @@ class HotspotWindow(Gtk.Window):
     }
     
     def __init__(self, zone, monitor_name, commands_dict, monitor_geom):
-        Gtk.Window.__init__(self, type=Gtk.WindowType.POPUP)
+        Gtk.Window.__init__(self, type=Gtk.WindowType.TOPLEVEL)
         
         self.zone = zone
         self.monitor_name = monitor_name
@@ -440,6 +446,9 @@ class HotspotWindow(Gtk.Window):
         self.monitor_geom = monitor_geom
         
         # Window setup
+        self.use_layer = GtkLayerShell is not None and GtkLayerShell.is_supported()
+        if self.use_layer:
+            self.setup_layer_shell()
         self.set_decorated(False)
         self.set_keep_above(True)
         self.set_skip_taskbar_hint(True)
@@ -484,7 +493,32 @@ class HotspotWindow(Gtk.Window):
         self.add(box)
         self.set_size_request(300, -1)
         self.show_all()
-        self.position_window()
+        if self.use_layer:
+            # click-through so cards don't block the windows underneath
+            self.input_shape_combine_region(cairo.Region())
+        else:
+            self.position_window()
+    
+    def setup_layer_shell(self):
+        """Anchor to the zone's corner/edge on the named output (move() is ignored on Wayland)"""
+        GtkLayerShell.init_for_window(self)
+        GtkLayerShell.set_layer(self, GtkLayerShell.Layer.OVERLAY)
+        GtkLayerShell.set_namespace(self, "fittsmon-wl-gui-hotspot")
+        gdk_mon = self.monitor_geom.get('gdk_monitor')
+        if gdk_mon:
+            GtkLayerShell.set_monitor(self, gdk_mon)
+        
+        x_pos, y_pos = self.ZONE_INFO[self.zone]['pos']
+        edges = {
+            GtkLayerShell.Edge.LEFT: x_pos == 0,
+            GtkLayerShell.Edge.RIGHT: x_pos == 1,
+            GtkLayerShell.Edge.TOP: y_pos == 0,
+            GtkLayerShell.Edge.BOTTOM: y_pos == 1,
+        }
+        for edge, anchored in edges.items():
+            GtkLayerShell.set_anchor(self, edge, anchored)
+            if anchored:
+                GtkLayerShell.set_margin(self, edge, 20)
     
     def position_window(self):
         """Position window at zone location on specific monitor"""
@@ -542,8 +576,8 @@ class MonitorHelper:
     def __init__(self):
         self.monitors = {}
     
-    def detect_monitors(self):
-        """Detect all monitors and their geometry using modern Gdk.Display API"""
+    def detect_monitors(self, positions):
+        """Map wlr-randr output names to Gdk monitors by position ({name: (x, y)})"""
         self.monitors = {}
         display = Gdk.Display.get_default()
         
@@ -552,15 +586,14 @@ class MonitorHelper:
             monitor = display.get_monitor(i)
             geom = monitor.get_geometry()
             
-            monitor_name = monitor.get_model()
-            if not monitor_name:
-                monitor_name = f"Monitor-{i}"
-            
-            if monitor_name in self.monitors:
-                monitor_name = f"{monitor_name}-{i}"
+            monitor_name = next(
+                (n for n, pos in positions.items() if pos == (geom.x, geom.y)),
+                f"Monitor-{i}"
+            )
             
             self.monitors[monitor_name] = {
                 'index': i,
+                'gdk_monitor': monitor,
                 'x': geom.x,
                 'y': geom.y,
                 'width': geom.width,
@@ -744,21 +777,27 @@ class FittsmonGUI:
         self.setup_gui()
     
     def detect_monitors(self):
+        positions = {}
         try:
             result = subprocess.run(
                 ["wlr-randr"],
                 capture_output=True, text=True, timeout=5
             )
             
+            current = None
             for line in result.stdout.split('\n'):
                 # output names start in column 0, details are indented
                 if line and not line[0].isspace():
-                    self.monitors.append({'name': line.split()[0], 'primary': False})
+                    current = line.split()[0]
+                    self.monitors.append({'name': current, 'primary': False})
+                elif current and line.strip().startswith('Position:'):
+                    x, y = line.split(':', 1)[1].strip().split(',')
+                    positions[current] = (int(x), int(y))
         except Exception as e:
             print(f"[ERROR] Monitor detection failed: {e}")
             self.monitors = [{'name': 'default', 'primary': True}]
         
-        self.monitor_helper.detect_monitors()
+        self.monitor_helper.detect_monitors(positions)
     
     def load_config(self):
         self.config = ConfigParser()
@@ -961,6 +1000,8 @@ class FittsmonGUI:
         
         for mon_name in [m['name'] for m in self.monitors]:
             mon_geom = self.monitor_helper.get_monitor_geom(mon_name)
+            if mon_name not in self.monitor_helper.monitors and self.monitor_helper.monitors:
+                continue
             
             for zone in self.zones:
                 commands_dict = {}

@@ -6,7 +6,7 @@ For X11 use [fittsmon-gui](https://github.com/musqz/fittsmon-gui).
 Based on fittsmon-gui.
 
 ## Requirements
-- `fittsmon-wl`, `wlr-randr`, `python-gobject`, `gtk3`
+- `fittsmon-wl`, `wlr-randr`, `python-gobject`, `gtk3`, `gtk-layer-shell`
 
 ## Run
 ```bash
