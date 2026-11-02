@@ -12,6 +12,8 @@ pkgbase = fittsmon-wl-gui
 	depends = gtk-layer-shell
 	depends = wlr-randr
 	depends = xdg-utils
-	optdepends = fittsmon-wl: the daemon this GUI configures
+	depends = fittsmon>=1.3.0
+	source = fittsmon-wl-gui-0.1.0.tar.gz::https://github.com/musqz/fittsmon-wl-gui/archive/refs/tags/v0.1.0.tar.gz
+	sha256sums = SKIP
 
 pkgname = fittsmon-wl-gui
