@@ -8,7 +8,7 @@ url="https://github.com/musqz/fittsmon-wl-gui"
 license=('MIT')
 depends=('python' 'python-gobject' 'python-cairo' 'gtk3' 'gtk-layer-shell' 'wlr-randr' 'xdg-utils' 'fittsmon>=1.3.0')
 source=("${pkgname}-${pkgver}.tar.gz::${url}/archive/refs/tags/v${pkgver}.tar.gz")
-sha256sums=('SKIP')
+sha256sums=('06589c0f54f032543531a33906123853d2afc60668b0f52c54902f332ed8740b')
 
 prepare() {
     cd "${srcdir}/${pkgname}-${pkgver}"
