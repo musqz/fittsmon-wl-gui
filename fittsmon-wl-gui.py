@@ -476,6 +476,7 @@ class HotspotWindow(Gtk.Window):
             longest = max((text_width(c) for c in commands_dict.values() if c.strip()), default=0)
             text_px = min(max_px, max(320, longest + 8))
             
+            labels = []
             box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
             for side in ('top', 'bottom', 'start', 'end'):
                 getattr(box, f'set_margin_{side}')(20)
@@ -501,10 +502,19 @@ class HotspotWindow(Gtk.Window):
                     event_label.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
                     event_label.set_size_request(text_px, -1)
                     box.pack_start(event_label, False, False, 0)
+                    labels.append(event_label)
             
             box.show_all()
             if box.get_preferred_height_for_width(text_px + 40)[1] <= max_h:
                 break
+        else:
+            # still too tall at the smallest font: cut each command to 2 lines, then 1
+            for lines in (3, 2):
+                for lbl in labels:
+                    lbl.set_ellipsize(Pango.EllipsizeMode.END)
+                    lbl.set_lines(lines)
+                if box.get_preferred_height_for_width(text_px + 40)[1] <= max_h:
+                    break
         
         self.card_width = text_px + 40
         self.add(box)
