@@ -12,6 +12,7 @@ ICONDIR    = $(PREFIX)/share/icons/hicolor
 LICENSEDIR = $(PREFIX)/share/licenses/$(TARGET)
 
 SCRIPT       = fittsmon-wl-gui.py
+VERSION      = $(shell cat VERSION)
 MAN_PAGE     = fittsmon-wl-gui.1
 ICON_SVG     = icons/scalable/apps/fittsmon-wl-gui.svg
 DESKTOP_FILE = fittsmon-wl-gui.desktop
@@ -22,7 +23,8 @@ all:
 	@echo "Nothing to build. Run 'make install' to install."
 
 install:
-	install -Dm755 $(SCRIPT)   $(DESTDIR)$(BINDIR)/$(TARGET)
+	@test -n '$(VERSION)' || { echo 'VERSION file is missing or empty' >&2; exit 1; }
+	sed 's/__VERSION__/$(VERSION)/' $(SCRIPT) | install -Dm755 /dev/stdin $(DESTDIR)$(BINDIR)/$(TARGET)
 	install -Dm644 $(MAN_PAGE) $(DESTDIR)$(MANDIR)/$(MAN_PAGE)
 	gzip -nf                   $(DESTDIR)$(MANDIR)/$(MAN_PAGE)
 	install -Dm644 $(DESKTOP_FILE) $(DESTDIR)$(APPSDIR)/$(TARGET).desktop
