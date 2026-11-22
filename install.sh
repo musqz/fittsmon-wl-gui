@@ -27,7 +27,8 @@ fi
 
 [[ $# -eq 0 ]] || { echo "usage: $0 [--uninstall]" >&2; exit 1; }
 
-$SUDO install -Dm755 "$SRC/fittsmon-wl-gui.py" "$BIN"
+VERSION=$(<"$SRC/VERSION")
+sed "s/__VERSION__/$VERSION/" "$SRC/fittsmon-wl-gui.py" | $SUDO install -Dm755 /dev/stdin "$BIN"
 $SUDO install -Dm644 "$SRC/fittsmon-wl-gui.1" "${MAN%.gz}"
 $SUDO gzip -nf "${MAN%.gz}"
 $SUDO install -Dm644 "$SRC/fittsmon-wl-gui.desktop" "$DESKTOP"
