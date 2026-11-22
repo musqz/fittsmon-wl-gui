@@ -6,7 +6,7 @@ fittsmon Configuration GUI - Simple Edition
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
-from gi.repository import Gtk, Gdk, GLib
+from gi.repository import Gtk, Gdk, GLib, Pango
 try:
     gi.require_version('GtkLayerShell', '0.1')
     from gi.repository import GtkLayerShell
@@ -463,35 +463,63 @@ class HotspotWindow(Gtk.Window):
             self.set_visual(visual)
         self.connect("draw", self.on_draw)
         
-        # Content
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        box.set_margin_top(15)
-        box.set_margin_bottom(15)
-        box.set_margin_start(15)
-        box.set_margin_end(15)
+        # Content: one line per command; wrap past a third of the monitor width and
+        # drop the font a step when three stacked cards would not fit the monitor height
+        max_px = max(360, (monitor_geom['width'] - 80) // 3 - 40)
+        max_h = (monitor_geom['height'] - 80) // 3
+        probe = Gtk.Label()
+        for size, head_size in (('large', 'x-large'), ('medium', 'large'), ('small', 'medium')):
+            def text_width(cmd):
+                layout = probe.create_pango_layout("")
+                layout.set_markup(f"<span size='{size}'>{GLib.markup_escape_text(cmd)}</span>")
+                return layout.get_pixel_size()[0]
+            longest = max((text_width(c) for c in commands_dict.values() if c.strip()), default=0)
+            text_px = min(max_px, max(320, longest + 8))
+            
+            labels = []
+            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+            for side in ('top', 'bottom', 'start', 'end'):
+                getattr(box, f'set_margin_{side}')(20)
+            
+            header = Gtk.Label()
+            header.set_markup(
+                f"<span size='{head_size}'><b>{self.ZONE_INFO[zone]['emoji']} {zone}</b></span>"
+                f"  <span size='{size}'>{GLib.markup_escape_text(monitor_name)}</span>"
+            )
+            header.set_halign(Gtk.Align.START)
+            box.pack_start(header, False, False, 0)
+            
+            for event, command in commands_dict.items():
+                if command.strip():
+                    event_label = Gtk.Label()
+                    event_label.set_markup(
+                        f"<span size='{size}'><b>{GLib.markup_escape_text(event)}</b>\n"
+                        f"{GLib.markup_escape_text(command)}</span>"
+                    )
+                    event_label.set_halign(Gtk.Align.START)
+                    event_label.set_xalign(0)
+                    event_label.set_line_wrap(True)
+                    event_label.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
+                    event_label.set_size_request(text_px, -1)
+                    box.pack_start(event_label, False, False, 0)
+                    labels.append(event_label)
+            
+            box.show_all()
+            if box.get_preferred_height_for_width(text_px + 40)[1] <= max_h:
+                break
+        else:
+            # still too tall at the smallest font: cut each command to 2 lines, then 1
+            for lines in (3, 2):
+                for lbl in labels:
+                    lbl.set_ellipsize(Pango.EllipsizeMode.END)
+                    lbl.set_lines(lines)
+                if box.get_preferred_height_for_width(text_px + 40)[1] <= max_h:
+                    break
         
-        # Zone header
-        header = Gtk.Label()
-        header.set_markup(
-            f"<big><b>{self.ZONE_INFO[zone]['emoji']} {zone}</b></big>\n"
-            f"<small>{monitor_name}</small>"
-        )
-        header.set_halign(Gtk.Align.CENTER)
-        box.pack_start(header, False, False, 0)
-        
-        # Commands list
-        for event, command in commands_dict.items():
-            if command.strip():
-                cmd_display = command if len(command) < 30 else command[:27] + "..."
-                event_label = Gtk.Label()
-                event_label.set_markup(f"<small><b>{event}</b>\n{cmd_display}</small>")
-                event_label.set_halign(Gtk.Align.START)
-                event_label.set_line_wrap(True)
-                event_label.set_max_width_chars(35)
-                box.pack_start(event_label, False, False, 0)
-        
+        self.card_width = text_px + 40
         self.add(box)
-        self.set_size_request(300, -1)
+        self.set_default_size(self.card_width, -1)
+        self.set_size_request(self.card_width, -1)
         self.show_all()
         if self.use_layer:
             # click-through so cards don't block the windows underneath
@@ -526,7 +554,7 @@ class HotspotWindow(Gtk.Window):
         
         x_pos, y_pos = self.ZONE_INFO[self.zone]['pos']
         
-        window_width = 300
+        window_width = self.card_width
         padding = 20
         
         if x_pos == 0:
